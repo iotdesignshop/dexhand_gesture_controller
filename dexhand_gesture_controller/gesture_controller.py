@@ -5,6 +5,7 @@ from rclpy.qos import QoSProfile
 from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster, TransformStamped
+import threading
 
 class GestureController(Node):
 
@@ -17,8 +18,6 @@ class GestureController(Node):
         self.broadcaster = TransformBroadcaster(self, qos=qos_profile)
         self.nodeName = self.get_name()
         self.get_logger().info("{0} started".format(self.nodeName))
-
-        degree = pi / 180.0
 
         # Run loop @ 30 Hz
         loop_rate = self.create_rate(30)
@@ -56,14 +55,30 @@ class GestureController(Node):
         self.get_logger().info("{0} joint names: {1}".format(self.nodeName, self.joint_state.name))
         self.get_logger().info("{0} joint positions: {1}".format(self.nodeName, self.joint_state.position))
 
+        # Utilities to make it easy to work with the fingers
+        self.fingers = ['index', 'middle', 'ring', 'pinky', 'thumb']
+        self.finger_joints = ['yaw', 'pitch', 'knuckle', 'tip']
+        self.finger_joint_table = [
+            ['index_yaw', 'index_pitch', 'index_knuckle', 'index_tip'],
+            ['middle_yaw', 'middle_pitch', 'middle_knuckle', 'middle_tip'],
+            ['ring_yaw', 'ring_pitch', 'ring_knuckle', 'ring_tip'],
+            ['pinky_yaw', 'pinky_pitch', 'pinky_knuckle', 'pinky_tip'],
+            ['thumb_yaw', 'thumb_pitch', 'thumb_knuckle', 'thumb_tip']
+        ]
+
         # Really simple animation system to simulate servo motors moving
         # Basically, the target position, and a rotational velocity. 
         # Move at the velocity toward the target position
         self.joint_state_animation_targets = [0.0] * self.NUM_JOINTS
         self.joint_state_animation_velocities = [0.0] * self.NUM_JOINTS
-        self.ROTATIONAL_VELOCITY = 0.01
+        self.ROTATIONAL_VELOCITY = 0.02
+        self.isAnimating = False
 
+
+        for finger in self.fingers:
+            self.set_finger_extension(finger, 75.0)
         
+
         try:
             while rclpy.ok():
                 rclpy.spin_once(self)
@@ -77,9 +92,25 @@ class GestureController(Node):
         except KeyboardInterrupt:
             pass
 
+    # Sets the target position for a joint
+    def set_joint_target_degrees(self, joint_name, target_position):
+        if joint_name in self.joint_state.name:
+            joint_index = self.joint_state.name.index(joint_name)
+            self.joint_state_animation_targets[joint_index] = target_position * pi / 180.0
+
+            # Set the velocity to move toward the target
+            if (self.joint_state_animation_targets[joint_index] > self.joint_state.position[joint_index]):
+                self.joint_state_animation_velocities[joint_index] = self.ROTATIONAL_VELOCITY
+            else:
+                self.joint_state_animation_velocities[joint_index] = -self.ROTATIONAL_VELOCITY
+        else:
+            self.get_logger().warn("{0} is not a valid joint name".format(joint_name))
+    
 
     # Performs a single frame of animation and publishes the joint state
     def animate_and_publish(self):
+
+        self.isAnimating = False
     
         # Animate all joints
         for i in range(self.NUM_JOINTS):
@@ -88,12 +119,11 @@ class GestureController(Node):
             # If the difference is greater than the rotational velocity, move the joint
             if abs(diff) > self.ROTATIONAL_VELOCITY:
                 self.joint_state.position[i] += self.joint_state_animation_velocities[i]
+                self.isAnimating = True # We have at least one joint moving
             # Otherwise, we're close enough to the target, so just set the position
             else:
                 self.joint_state.position[i] = self.joint_state_animation_targets[i]
                 self.joint_state_animation_velocities[i] = 0.0
-        
-
 
         # Timestamp
         now = self.get_clock().now()
@@ -101,6 +131,27 @@ class GestureController(Node):
         
         # Publish the new joint state
         self.joint_pub.publish(self.joint_state)
+
+
+    # Set default pose
+    def set_default_pose(self):
+
+        # All joints move to 0 degrees
+        for joint_name in self.joint_state.name:
+            self.set_joint_target_degrees(joint_name, 0.0)
+
+    # Sets the extension of a finger
+    def set_finger_extension(self, finger_name, extension):
+        if finger_name in self.fingers:
+            finger_index = self.fingers.index(finger_name)
+
+            # Set the extension of all joints in the finger except the yaw
+            for i in range(1, len(self.finger_joints)):
+                joint_name = self.finger_joint_table[finger_index][i]
+                self.set_joint_target_degrees(joint_name, extension)
+            
+        else:
+            self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
 
     
 
