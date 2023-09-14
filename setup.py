@@ -25,7 +25,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'state_publisher = dexhand_gesture_controller.state_publisher:main'
+            'gesture_controller = dexhand_gesture_controller.gesture_controller:main'
         ],
     },
 )

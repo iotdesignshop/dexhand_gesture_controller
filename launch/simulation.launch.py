@@ -31,18 +31,16 @@ def generate_launch_description():
             output='screen',
             parameters=[{'use_sim_time': use_sim_time, 'robot_description': urdf}]),
         Node(
-            package='joint_state_publisher',
-            executable='joint_state_publisher'),
+            package='dexhand_gesture_controller',
+            executable='gesture_controller',
+            name='gesture_controller',
+            output='screen'),
         Node(
             package='rviz2',
             executable='rviz2',
             name='rviz2',
             output='screen',
             arguments=['-d', str(rviz_path)]),
-        #Node(
-        #    package='dexhand_gesture_controller',
-        #    executable='state_publisher',
-        #    name='state_publisher',
-        #    output='screen'),
+        
         
     ])
