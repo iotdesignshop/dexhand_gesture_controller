@@ -6,6 +6,7 @@ from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster, TransformStamped
 import threading
+from std_msgs.msg import String 
 
 class GestureController(Node):
 
@@ -15,12 +16,15 @@ class GestureController(Node):
 
         qos_profile = QoSProfile(depth=10)
         self.joint_pub = self.create_publisher(JointState, 'joint_states', qos_profile)
-        self.broadcaster = TransformBroadcaster(self, qos=qos_profile)
         self.nodeName = self.get_name()
         self.get_logger().info("{0} started".format(self.nodeName))
 
-        # Run loop @ 30 Hz
-        loop_rate = self.create_rate(30)
+        # Subscribe to intent messages
+        self.intent_sub = self.create_subscription(String, 'intent', self.intent_callback, 10)
+
+        # Run animation loop @ 30 Hz
+        timer_period = 0.033 # seconds
+        self.timer = self.create_timer(timer_period, self.animate_and_publish)
 
         # Initialize a base message which we will re-use for each frame
         self.NUM_JOINTS = 23
@@ -65,6 +69,12 @@ class GestureController(Node):
             ['pinky_yaw', 'pinky_pitch', 'pinky_knuckle', 'pinky_tip'],
             ['thumb_yaw', 'thumb_pitch', 'thumb_knuckle', 'thumb_tip']
         ]
+        self.finger_range_table = [
+            [0.0, 75.0, 75.0, 75.0],    # index
+            [0.0, 75.0, 75.0, 75.0],    # middle
+            [0.0, 75.0, 75.0, 75.0],    # ring
+            [0.0, 75.0, 75.0, 75.0],    # pinky
+            [0.0, 60.0, 60.0, 60.0]]    # thumb
 
         # Really simple animation system to simulate servo motors moving
         # Basically, the target position, and a rotational velocity. 
@@ -73,21 +83,10 @@ class GestureController(Node):
         self.joint_state_animation_velocities = [0.0] * self.NUM_JOINTS
         self.ROTATIONAL_VELOCITY = 0.02
         self.isAnimating = False
-
-
-        for finger in self.fingers:
-            self.set_finger_extension(finger, 75.0)
         
-
         try:
             while rclpy.ok():
                 rclpy.spin_once(self)
-
-                # Animate and publish the joint state
-                self.animate_and_publish()
-                
-                # This will adjust as needed per iteration
-                loop_rate.sleep()
 
         except KeyboardInterrupt:
             pass
@@ -140,20 +139,56 @@ class GestureController(Node):
         for joint_name in self.joint_state.name:
             self.set_joint_target_degrees(joint_name, 0.0)
 
-    # Sets the extension of a finger
+    # Fist
+    def set_fist_pose(self):
+        self.set_default_pose()
+
+        # Close the finger extensions
+        for finger in self.fingers:
+            self.set_finger_extension(finger, 0.0)
+
+        # Rotate the yaw on the thumb to rotate the thumb around the palm
+        self.set_joint_target_degrees('thumb_yaw', 45.0)
+
+
+    # Grab
+    def set_grab_pose(self):
+        self.set_default_pose()
+
+        # Close the finger extensions partially
+        for finger in self.fingers:
+            self.set_finger_extension(finger, 0.45)
+
+        # Rotate the yaw on the thumb to rotate the thumb around the palm
+        self.set_joint_target_degrees('thumb_yaw', 40.0)
+
+        # Close the thumb
+        #self.set_finger_extension('thumb', 1.0)
+
+        # Close the index finger
+        #self.set_finger_extension('index', 1.0)
+        
+
+    # Sets the extension of a finger by name. 0.0 is closed (to fist) and 1.0 is open (straight)
     def set_finger_extension(self, finger_name, extension):
         if finger_name in self.fingers:
             finger_index = self.fingers.index(finger_name)
 
-            # Set the extension of all joints in the finger except the yaw
+            # Clamp extension range from 0-1
+            extension = min(max(extension, 0.0), 1.0)
+
+            # Scale the range based on the extension value for each joint except yaw
             for i in range(1, len(self.finger_joints)):
                 joint_name = self.finger_joint_table[finger_index][i]
-                self.set_joint_target_degrees(joint_name, extension)
+                self.set_joint_target_degrees(joint_name, (1.0-extension) * self.finger_range_table[finger_index][i])
             
         else:
             self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
 
-    
+    # Intent message handler
+    def intent_callback(self, msg):
+        self.get_logger().info('Received intent: "%s"' % msg.data)
+        pass
 
 def main():
     node = GestureController()

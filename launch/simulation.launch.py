@@ -13,7 +13,9 @@ def generate_launch_description():
 
     descr_path = get_package_share_path('dexhand_description')
     default_model_path = descr_path / 'urdf/dexhand.xacro'
-    rviz_path = descr_path / 'rviz/urdf.rviz'
+    
+    gesture_path = get_package_share_path('dexhand_gesture_controller')
+    rviz_path = gesture_path / 'rviz/simulation.rviz'
 
     urdf = ParameterValue(Command(['xacro ', str(default_model_path)]),
                                      value_type=str)
