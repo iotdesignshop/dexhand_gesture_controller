@@ -76,12 +76,23 @@ class GestureController(Node):
             [0.0, 75.0, 75.0, 75.0],    # pinky
             [0.0, 60.0, 60.0, 60.0]]    # thumb
 
+
+        # Intent lookup table - maps intent strings to functions
+        self.intent_table = {
+            "default": self.set_default_pose,
+            "fist": self.set_fist_pose,
+            "grab": self.set_grab_pose,
+            "peace": self.set_peace_pose,
+            "horns": self.set_horns_pose,
+            "shaka": self.set_shaka_pose
+        }
+
         # Really simple animation system to simulate servo motors moving
         # Basically, the target position, and a rotational velocity. 
         # Move at the velocity toward the target position
         self.joint_state_animation_targets = [0.0] * self.NUM_JOINTS
         self.joint_state_animation_velocities = [0.0] * self.NUM_JOINTS
-        self.ROTATIONAL_VELOCITY = 0.02
+        self.ROTATIONAL_VELOCITY = 0.05
         self.isAnimating = False
         
         try:
@@ -148,6 +159,7 @@ class GestureController(Node):
             self.set_finger_extension(finger, 0.0)
 
         # Rotate the yaw on the thumb to rotate the thumb around the palm
+        self.set_finger_extension('thumb', 0.4)
         self.set_joint_target_degrees('thumb_yaw', 45.0)
 
 
@@ -162,11 +174,38 @@ class GestureController(Node):
         # Rotate the yaw on the thumb to rotate the thumb around the palm
         self.set_joint_target_degrees('thumb_yaw', 40.0)
 
-        # Close the thumb
-        #self.set_finger_extension('thumb', 1.0)
+    # Peace
+    def set_peace_pose(self):
+        self.set_fist_pose()
 
-        # Close the index finger
-        #self.set_finger_extension('index', 1.0)
+        # Extend the index and middle fingers
+        self.set_finger_extension('index', 1.0)
+        self.set_finger_extension('middle', 1.0)
+
+        # Spread the index and middle fingers
+        self.set_joint_target_degrees('index_yaw', 15.0)
+        self.set_joint_target_degrees('middle_yaw', -15.0)
+
+    # Horns
+    def set_horns_pose(self):
+        self.set_fist_pose()
+
+        # Extend the index and pinky fingers
+        self.set_finger_extension('index', 1.0)
+        self.set_finger_extension('pinky', 1.0)
+
+    # Shaka
+    def set_shaka_pose(self):
+        self.set_default_pose()
+
+        # Close all fingers except pinky and thumb
+        for finger in self.fingers:
+            if finger != 'pinky' and finger != 'thumb':
+                self.set_finger_extension(finger, 0.0)
+
+        # Angle pinky outward
+        self.set_joint_target_degrees('pinky_yaw', -20.0)
+
         
 
     # Sets the extension of a finger by name. 0.0 is closed (to fist) and 1.0 is open (straight)
@@ -188,7 +227,13 @@ class GestureController(Node):
     # Intent message handler
     def intent_callback(self, msg):
         self.get_logger().info('Received intent: "%s"' % msg.data)
-        pass
+
+        # Look up the intent in the table and call the function
+        if msg.data in self.intent_table:
+            self.intent_table[msg.data]()
+        else:
+            self.get_logger().warn("{0} is not a known intent".format(msg.data))
+        
 
 def main():
     node = GestureController()
