@@ -30,3 +30,18 @@ To run the package against hardware:
 
 With the simulation and/or physical hardware running (you can run them both at the same time if you wish). You can send messages to the **dexhand_gesture** ROS topic. From the command line, this is done as follows:
 
+`ros2 topic pub -1 /dexhand_gesture std_msgs/msg/String "data: '<pose>'"`
+
+Where *pose* is any of the named hand positions found in the Python script such as fist, peace, horns, point, and so forth. To return to the default hand pose you use *'reset'* as the argument. 
+
+For example, to form a fist:
+
+`ros2 topic pub -1 /dexhand_gesture std_msgs/msg/String "data: 'fist'"`
+
+And then to return to the base pose:
+
+`ros2 topic pub -1 /dexhand_gesture std_msgs/msg/String "data: 'reset'"`
+
+
+
+
