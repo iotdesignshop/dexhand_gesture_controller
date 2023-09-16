@@ -84,7 +84,9 @@ class GestureController(Node):
             "grab": self.set_grab_pose,
             "peace": self.set_peace_pose,
             "horns": self.set_horns_pose,
-            "shaka": self.set_shaka_pose
+            "shaka": self.set_shaka_pose,
+            "point": self.set_index_point_pose
+
         }
 
         # Really simple animation system to simulate servo motors moving
@@ -205,6 +207,14 @@ class GestureController(Node):
 
         # Angle pinky outward
         self.set_joint_target_degrees('pinky_yaw', -20.0)
+
+
+    # Index finger point
+    def set_index_point_pose(self):
+        self.set_fist_pose()
+
+        # Extend the index finger
+        self.set_finger_extension('index', 1.0)
 
         
 
