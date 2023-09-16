@@ -9,8 +9,6 @@ from launch.substitutions import Command
 
 def generate_launch_description():
 
-    use_sim_time = LaunchConfiguration('use_sim_time', default='false')
-
     descr_path = get_package_share_path('dexhand_description')
     default_model_path = descr_path / 'urdf/dexhand.xacro'
     
@@ -22,16 +20,12 @@ def generate_launch_description():
 
     
     return LaunchDescription([
-        DeclareLaunchArgument(
-            'use_sim_time',
-            default_value='false',
-            description='Use simulation (Gazebo) clock if true'),
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
             name='robot_state_publisher',
             output='screen',
-            parameters=[{'use_sim_time': use_sim_time, 'robot_description': urdf}]),
+            parameters=[{'robot_description': urdf}]),
         Node(
             package='dexhand_gesture_controller',
             executable='gesture_controller',
