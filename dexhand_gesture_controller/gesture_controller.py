@@ -6,7 +6,7 @@ from geometry_msgs.msg import Quaternion
 from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster, TransformStamped
 import threading
-from std_msgs.msg import String 
+from std_msgs.msg import String
 
 class GestureController(Node):
 
@@ -21,6 +21,7 @@ class GestureController(Node):
 
         # Subscribe to gesture messages
         self.gesture_sub = self.create_subscription(String, 'dexhand_gesture', self.gesture_callback, 10)
+        self.extension_sub = self.create_subscription(String, 'dexhand_finger_extension', self.extension_callback, 10)
 
         # Run animation loop @ 30 Hz
         timer_period = 0.033 # seconds
@@ -244,6 +245,20 @@ class GestureController(Node):
             self.intent_table[msg.data]()
         else:
             self.get_logger().warn("{0} is not a known gesture".format(msg.data))
+
+    # Finger extension message handler
+    def extension_callback(self, msg):
+        self.get_logger().info('Received finger extension: "%s"' % msg.data)
+
+        # Parse the finger name and extension value from the message
+        finger_name, extension = msg.data.split(':')
+        extension = float(extension)
+
+        # Set the finger extension
+        if (finger_name in self.fingers):
+            self.set_finger_extension(finger_name, extension)
+        else:
+            self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
         
 
 def main():

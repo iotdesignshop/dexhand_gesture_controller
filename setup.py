@@ -20,7 +20,7 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='    Trent Shumay',
+    maintainer='Trent Shumay',
     maintainer_email='trent@iotdesignshop.com',
     description='A high-level semantic controller for the DexHand',
     license='CC BY-NC-SA 4.0',
