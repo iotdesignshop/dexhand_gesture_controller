@@ -19,8 +19,8 @@ class GestureController(Node):
         self.nodeName = self.get_name()
         self.get_logger().info("{0} started".format(self.nodeName))
 
-        # Subscribe to intent messages
-        self.intent_sub = self.create_subscription(String, 'intent', self.intent_callback, 10)
+        # Subscribe to gesture messages
+        self.gesture_sub = self.create_subscription(String, 'dexhand_gesture', self.gesture_callback, 10)
 
         # Run animation loop @ 30 Hz
         timer_period = 0.033 # seconds
@@ -80,6 +80,7 @@ class GestureController(Node):
         # Intent lookup table - maps intent strings to functions
         self.intent_table = {
             "default": self.set_default_pose,
+            "reset": self.set_default_pose,
             "fist": self.set_fist_pose,
             "grab": self.set_grab_pose,
             "peace": self.set_peace_pose,
@@ -234,15 +235,15 @@ class GestureController(Node):
         else:
             self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
 
-    # Intent message handler
-    def intent_callback(self, msg):
-        self.get_logger().info('Received intent: "%s"' % msg.data)
+    # Gesture message handler
+    def gesture_callback(self, msg):
+        self.get_logger().info('Received gesture: "%s"' % msg.data)
 
         # Look up the intent in the table and call the function
         if msg.data in self.intent_table:
             self.intent_table[msg.data]()
         else:
-            self.get_logger().warn("{0} is not a known intent".format(msg.data))
+            self.get_logger().warn("{0} is not a known gesture".format(msg.data))
         
 
 def main():
