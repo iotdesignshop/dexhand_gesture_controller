@@ -23,6 +23,9 @@ class GestureController(Node):
         self.gesture_sub = self.create_subscription(String, 'dexhand_gesture', self.gesture_callback, 10)
         self.extension_sub = self.create_subscription(String, 'dexhand_finger_extension', self.extension_callback, 10)
 
+        # Hardware publisher
+        self.hw_pub = self.create_publisher(String, 'dexhand_hw_command', 10)
+
         # Run animation loop @ 30 Hz
         timer_period = 0.033 # seconds
         self.timer = self.create_timer(timer_period, self.animate_and_publish)
@@ -246,6 +249,12 @@ class GestureController(Node):
         else:
             self.get_logger().warn("{0} is not a known gesture".format(msg.data))
 
+        # Publish the message to the hardware
+        if (msg.data in self.intent_table):
+            hw_msg = String()
+            hw_msg.data = "gesture:{0}".format(msg.data)
+            self.hw_pub.publish(hw_msg)
+
     # Finger extension message handler
     def extension_callback(self, msg):
         self.get_logger().info('Received finger extension: "%s"' % msg.data)
@@ -254,12 +263,24 @@ class GestureController(Node):
         finger_name, extension = msg.data.split(':')
         extension = float(extension)
 
-        # Set the finger extension
+        # Set the finger extension in simulation
         if (finger_name in self.fingers):
             self.set_finger_extension(finger_name, extension)
         else:
             self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
         
+        # Set the finger extension in hardware
+        if (finger_name in self.fingers):
+            # Hardware publisher operates in 0-100 range, so multiply by 100 and convert to int
+            extension = int(extension * 100)
+
+            # Hardware publisher user finger index and not name
+            finger_index = self.fingers.index(finger_name)
+
+            # Publish the message
+            hw_msg = String()
+            hw_msg.data = "fingerextension:{0}:{1}".format(finger_index, extension)
+            self.hw_pub.publish(hw_msg)
 
 def main():
     node = GestureController()
