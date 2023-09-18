@@ -85,6 +85,7 @@ class GestureController(Node):
         self.intent_table = {
             "default": self.set_default_pose,
             "reset": self.set_default_pose,
+            "wave": self.set_default_pose,
             "fist": self.set_fist_pose,
             "grab": self.set_grab_pose,
             "peace": self.set_peace_pose,
@@ -245,16 +246,18 @@ class GestureController(Node):
 
         # Look up the intent in the table and call the function
         if msg.data in self.intent_table:
+            # Call sim function
             self.intent_table[msg.data]()
-        else:
-            self.get_logger().warn("{0} is not a known gesture".format(msg.data))
 
-        # Publish the message to the hardware
-        if (msg.data in self.intent_table):
+            # Publish the message to the hardware
             hw_msg = String()
             hw_msg.data = "gesture:{0}".format(msg.data)
             self.hw_pub.publish(hw_msg)
 
+        else:
+            self.get_logger().warn("{0} is not a known gesture".format(msg.data))
+
+            
     # Finger extension message handler
     def extension_callback(self, msg):
         self.get_logger().info('Received finger extension: "%s"' % msg.data)
@@ -265,12 +268,9 @@ class GestureController(Node):
 
         # Set the finger extension in simulation
         if (finger_name in self.fingers):
+            # Process sim finger
             self.set_finger_extension(finger_name, extension)
-        else:
-            self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
-        
-        # Set the finger extension in hardware
-        if (finger_name in self.fingers):
+
             # Hardware publisher operates in 0-100 range, so multiply by 100 and convert to int
             extension = int(extension * 100)
 
@@ -282,6 +282,10 @@ class GestureController(Node):
             hw_msg.data = "fingerextension:{0}:{1}".format(finger_index, extension)
             self.hw_pub.publish(hw_msg)
 
+        else:
+            self.get_logger().warn("{0} is not a valid finger name".format(finger_name))
+        
+        
 def main():
     node = GestureController()
 
