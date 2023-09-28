@@ -31,10 +31,11 @@ class GestureController(Node):
         self.timer = self.create_timer(timer_period, self.animate_and_publish)
 
         # Initialize a base message which we will re-use for each frame
-        self.NUM_JOINTS = 23
+        self.NUM_JOINTS = 24
         self.joint_state = JointState()
         self.joint_state.name=[
-                    'wrist_pitch',
+                    'wrist_pitch_lower',
+                    'wrist_pitch_upper',
                     'wrist_yaw',
                     'index_yaw',
                     'middle_yaw',
