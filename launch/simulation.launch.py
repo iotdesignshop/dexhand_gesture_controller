@@ -10,7 +10,7 @@ from launch.substitutions import Command
 def generate_launch_description():
 
     descr_path = get_package_share_path('dexhand_description')
-    default_model_path = descr_path / 'urdf/dexhand.xacro'
+    default_model_path = descr_path / 'urdf/dexhand-right.xacro'
     
     gesture_path = get_package_share_path('dexhand_gesture_controller')
     rviz_path = gesture_path / 'rviz/simulation.rviz'

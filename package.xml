@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>dexhand_gesture_controller</name>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <description>A high-level semantic controller for the DexHand</description>
   <maintainer email="trent@iotdesignshop.com">Trent Shumay</maintainer>
   <license>CC BY-NC-SA 4.0</license>
